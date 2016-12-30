@@ -33,3 +33,4 @@ void DesEncrypt(unsigned char *clear, unsigned char *key,
 int IsBlank(char *s);
 char *printmac(unsigned char *mac);
 int str2hex (char *string, uint8_t *hexstr, int len);
+int decodeHexString (char *hexstr, uint8_t *result, int len);

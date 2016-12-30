@@ -243,3 +243,35 @@ int str2hex (char *string, uint8_t *hexstr, int len)
 
 	return(1);
 }
+
+int decodeHexString (char *hexstr, uint8_t *result, int len)
+{
+	char *ptr, *next;
+	unsigned long val;
+	int i;
+
+    char tmp[3];
+    tmp[2] = '\0';
+
+    if (strlen(hexstr) != 2*len) {
+        errno = EINVAL;
+        return(-1);
+    }
+
+	ptr = next = hexstr;
+	for(i=0;i < len;i++) {
+        memcpy(tmp, ptr, 2);
+		if((val = strtoul(tmp, NULL, 16)) > 255) {
+			errno = EINVAL;
+			return(-1);
+		}
+		result[i] = (unsigned int)val;
+        ptr += 2;
+		if((ptr[0] == '\0' || ptr[1] == '\0') && (i != len - 1)) {
+			errno = EINVAL;
+			return(-1);
+		}
+	}
+
+	return(1);
+}
