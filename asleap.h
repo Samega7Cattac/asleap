@@ -61,6 +61,8 @@ struct asleap_data {
 	int eapsuccess;
 	int skipeapsuccess;	/* Don't bother checking for success after auth */
 	int verbose;
+	int gen_password;
+	int pass_len;
 	char dictfile[255];
 	char dictidx[255];
 	char wordfile[255];
