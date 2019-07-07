@@ -1,4 +1,5 @@
 asleap - recovers weak LEAP password.  Pronounced "asleep".
+This repo is a merge between [lager1 fork](https://github.com/lager1/asleap) that added "add simple password bruteforcing option" and [pecil1 fork](https://github.com/peci1/asleap) that added "the possibility to verify MSCHAP-V2 authentication process".
 
 Copyright(c) 2004-2008, Joshua Wright <jwright@hasborg.com>
 
