@@ -70,6 +70,9 @@ struct pcap_pkthdr h;
 char errbuf[PCAP_ERRBUF_SIZE];
 int success = 0; /* For return status of attack */
 unsigned long pcount=0;
+/* for password generation */
+const char * charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
 
 /* prototypes */
 void usage(char *message);
@@ -93,6 +96,8 @@ int testpptpchal(struct asleap_data *asleap_ptr, int plen, int offset);
 int testpptpresp(struct asleap_data *asleap_ptr, int plen,  int offset);
 int testpptpsuccess(struct asleap_data *asleap_ptr, int plen, int offset);
 void genchalhash(struct asleap_data *asleap);
+int trypasswords(struct asleap_data *asleap_ptr);
+int permute(struct asleap_data *asleap_ptr, int level, char * password);
 
 
 int stripname(char *name, char *stripname, int snamelen, char delim)
@@ -380,6 +385,54 @@ int getmschapbrute(struct asleap_data *asleap_ptr)
 		}
 	}
 	return 0;
+}
+
+/* try generating passwords and hashes based on command line params */
+int trypasswords(struct asleap_data *asleap_ptr)
+{
+	char password[MAX_NT_PASSWORD + 1] = {0};		/* should be dynamically allocated based on input param */
+	int ret;
+
+	for(int i = 0; i < asleap_ptr->pass_len; i++) {		/* iterate password length from 1 to desired length */
+		ret = permute(asleap_ptr, i, password);
+
+		if(ret == 0)
+			printf("no matching password found for length %d\n", i + 1);
+		else
+			return ret;
+	}
+
+	return ret;
+}
+
+/* generate all possible charset combinations */
+int permute(struct asleap_data *asleap_ptr, int level, char * password)
+{
+	const char* charset_ptr = charset;
+	unsigned char pwhash[MD4_SIGNATURE_SIZE];
+
+	if(level == -1) {	/* got generated password */
+		/* debug */
+		/* printf("%s\n", password); */
+		NtPasswordHash(password, strlen(password), pwhash);
+
+		if (pwhash[14] != asleap_ptr->endofhash[0] ||
+		    pwhash[15] != asleap_ptr->endofhash[1])
+			return 0;
+
+		if (testchal(asleap_ptr, pwhash) == 0) {
+			/* Found a matching password! w00t! */
+			memcpy(asleap_ptr->nthash, pwhash, 16);
+			strncpy(asleap_ptr->password, password,
+				strlen(password));
+			return (1);
+		}
+	} else
+		while(password[level] = *(charset_ptr++))	/* keep going */
+			if(permute(asleap_ptr, level - 1, password) == 1)
+				return 1;		/* found */
+
+	return 0;	/* nothing found */
 }
 
 /* Brute-force all the matching NT hashes to discover the clear-text password */
@@ -982,6 +1035,9 @@ int attack_leap(struct asleap_data *asleap)
 	if (!IsBlank(asleap->wordfile)) {
 		/* Attack MS-CHAP exchange with a straight dictionary list */
 		getmschappwret = getmschapbrute(asleap);
+	} else if(asleap->gen_password) {
+		/* Attack MS-CHAP exchange with brute-force password generation */
+	    getmschappwret = trypasswords(asleap);
 	} else {
 		getmschappwret = getmschappw(asleap);
 	}
@@ -1454,7 +1510,11 @@ int main(int argc, char *argv[])
 	printf("asleap %s - actively recover LEAP/PPTP passwords. "
 	       "<jwright@hasborg.com>\n", VER);
 
+<<<<<<< HEAD
 	while ((c = getopt(argc, argv, "DsoavhVi:f:n:r:w:c:t:W:C:R:A:B:U:P:")) != EOF) {
+=======
+	while ((c = getopt(argc, argv, "DsoavhVi:f:n:r:w:c:t:W:C:R:G:")) != EOF) {
+>>>>>>> asleap.lager1/master
 		switch (c) {
 		case 's':
 			asleap.skipeapsuccess = 1;
@@ -1597,6 +1657,10 @@ int main(int argc, char *argv[])
 		case 'W':
 			strncpy(asleap.wordfile, optarg, 
 					sizeof(asleap.wordfile) - 1);
+			break;
+		case 'G':
+			asleap.gen_password = 1;
+			sscanf(optarg, "%d", &asleap.pass_len); /* save desired password lentgh */
 			break;
 		default:
 			usage("");
